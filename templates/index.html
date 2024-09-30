@@ -1,178 +1,115 @@
 <!DOCTYPE html>
-<html lang="pt-br">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CRUD com Flask e MongoDB</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        margin: 20px;
-      }
-      h1 {
-        text-align: center;
-      }
-      .form-group {
-        margin: 10px 0;
-      }
-      .item-list {
-        margin-top: 20px;
-      }
-      .item-list ul {
-        list-style: none;
-        padding: 0;
-      }
-      .item-list li {
-        background: #f4f4f4;
-        margin: 5px 0;
-        padding: 10px;
-        border-radius: 5px;
-        display: flex;
-        justify-content: space-between;
-      }
-      button {
-        margin-left: 10px;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>CRUD com Flask e MongoDB</h1>
-
-    <!-- Formulário de Adicionar Item -->
-    <div>
-      <h2>Adicionar Item</h2>
-      <div class="form-group">
-        <label for="nome">Nome:</label>
-        <input type="text" id="nome" placeholder="Digite o nome" />
-      </div>
-      <div class="form-group">
-        <label for="descricao">Descrição:</label>
-        <input type="text" id="descricao" placeholder="Digite a descrição" />
-      </div>
-      <button onclick="addItem()">Adicionar</button>
-    </div>
-
-    <!-- Lista de Itens -->
-    <div class="item-list">
-      <h2>Lista de Itens</h2>
-      <ul id="itemList"></ul>
-    </div>
-
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Dados</title>
     <script>
-      const apiUrl = "http://localhost:5000/items";
+        // Função para enviar os dados do formulário para o backend
+        async function addData(event) {
+            event.preventDefault();
+            
+            const nome = document.getElementById('nome').value;
+            const descricao = document.getElementById('descricao').value;
 
-      // Função para listar os itens em tempo real
-      async function getItems() {
-        try {
-          const response = await fetch(apiUrl);
-          if (!response.ok) {
-            throw new Error("Erro ao buscar itens");
-          }
-          const data = await response.json();
-          const itemList = document.getElementById("itemList");
-          itemList.innerHTML = ""; // Limpa a lista antes de renderizar novamente
-          data.forEach((item) => {
-            const li = document.createElement("li");
-            li.innerHTML = `
-              <span><strong>${item.nome}:</strong> ${item.descricao}</span>
-              <span>
-                <button onclick="deleteItem('${item._id.$oid}')">Deletar</button>
-                <button onclick="editItem('${item._id.$oid}', '${item.nome}', '${item.descricao}')">Editar</button>
-              </span>
-            `;
-            itemList.appendChild(li);
-          });
-        } catch (error) {
-          console.error(error);
-          alert("Não foi possível carregar a lista de itens");
-        }
-      }
+            if (!nome || !descricao) {
+                alert("Por favor, preencha ambos os campos.");
+                return;
+            }
 
-      // Função para adicionar um item e atualizar a lista
-      async function addItem() {
-        const nome = document.getElementById("nome").value;
-        const descricao = document.getElementById("descricao").value;
+            const data = {
+                nome: nome,
+                descricao: descricao
+            };
 
-        if (!nome || !descricao) {
-          alert("Por favor, preencha todos os campos!");
-          return;
+            const response = await fetch('/add_data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                alert("Dados adicionados com sucesso!");
+                document.getElementById('nome').value = '';
+                document.getElementById('descricao').value = '';
+                listData(); // Atualiza a lista após adicionar
+            } else {
+                alert("Erro ao adicionar dados.");
+            }
         }
 
-        try {
-          const response = await fetch(apiUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ nome, descricao }),
-          });
+        // Função para listar os dados
+        async function listData() {
+            const response = await fetch('/list_data');
+            const result = await response.json();
 
-          if (!response.ok) {
-            throw new Error("Erro ao adicionar item");
-          }
+            const nomeList = document.getElementById('nome-list');
+            const descricaoList = document.getElementById('descricao-list');
 
-          alert("Item adicionado com sucesso!");
-          document.getElementById("nome").value = ""; // Limpa o campo nome
-          document.getElementById("descricao").value = ""; // Limpa o campo descrição
-          getItems(); // Atualiza a lista de itens em tempo real
-        } catch (error) {
-          console.error(error);
-          alert("Erro ao adicionar item");
-        }
-      }
+            // Limpa a lista anterior
+            nomeList.innerHTML = '';
+            descricaoList.innerHTML = '';
 
-      // Função para deletar um item e atualizar a lista
-      async function deleteItem(id) {
-        try {
-          const response = await fetch(`${apiUrl}/${id}`, {
-            method: "DELETE",
-          });
+            // Renderiza os nomes
+            result.nomes.forEach(nome => {
+                const li = document.createElement('li');
+                li.textContent = `Nome: ${nome.nome} `;
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Remover';
+                deleteButton.onclick = () => removeData('nome', nome._id);
+                li.appendChild(deleteButton);
+                nomeList.appendChild(li);
+            });
 
-          if (!response.ok) {
-            throw new Error("Erro ao deletar item");
-          }
-
-          alert("Item deletado com sucesso!");
-          getItems(); // Atualiza a lista de itens em tempo real
-        } catch (error) {
-          console.error(error);
-          alert("Erro ao deletar item");
-        }
-      }
-
-      // Função para editar um item e atualizar a lista
-      async function editItem(id, currentName, currentDesc) {
-        const nome = prompt("Editar Nome:", currentName);
-        const descricao = prompt("Editar Descrição:", currentDesc);
-
-        if (!nome || !descricao) {
-          alert("Campos de nome e descrição não podem estar vazios.");
-          return;
+            // Renderiza as descrições
+            result.descricoes.forEach(descricao => {
+                const li = document.createElement('li');
+                li.textContent = `Descrição: ${descricao.descricao} `;
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Remover';
+                deleteButton.onclick = () => removeData('descricao', descricao._id);
+                li.appendChild(deleteButton);
+                descricaoList.appendChild(li);
+            });
         }
 
-        try {
-          const response = await fetch(`${apiUrl}/${id}`, {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ nome, descricao }),
-          });
+        // Função para remover um dado pelo ID
+        async function removeData(collection, id) {
+            const response = await fetch(`/remove_data/${collection}/${id}`, {
+                method: 'DELETE'
+            });
 
-          if (!response.ok) {
-            throw new Error("Erro ao editar item");
-          }
-
-          alert("Item atualizado com sucesso!");
-          getItems(); // Atualiza a lista de itens em tempo real
-        } catch (error) {
-          console.error(error);
-          alert("Erro ao editar item");
+            if (response.ok) {
+                alert("Item removido com sucesso.");
+                listData(); // Atualiza a lista após remover
+            } else {
+                alert("Erro ao remover o item.");
+            }
         }
-      }
 
-      // Carregar itens ao carregar a página
-      window.onload = getItems;
+        // Carrega os dados ao iniciar a página
+        window.onload = listData;
     </script>
-  </body>
+</head>
+<body>
+    <h1>Gerenciar Dados no Banco de Dados</h1>
+
+    <form id="addDataForm" onsubmit="addData(event)">
+        <label for="nome">Nome:</label>
+        <input type="text" id="nome" name="nome"><br><br>
+
+        <label for="descricao">Descrição:</label>
+        <input type="text" id="descricao" name="descricao"><br><br>
+
+        <button type="submit">Adicionar</button>
+    </form>
+
+    <h2>Lista de Nomes</h2>
+    <ul id="nome-list"></ul>
+
+    <h2>Lista de Descrições</h2>
+    <ul id="descricao-list"></ul>
+</body>
 </html>

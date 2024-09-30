@@ -16,57 +16,65 @@ if not db_password:
 
 # Configuração do MongoClient com a senha
 client = MongoClient(
-    f'mongodb+srv://mjosegabriel13:<db_password>@bigdataclust.isr8i.mongodb.net/'
+    f'mongodb+srv://mjosegabriel13:{db_password}@bigdataclust.isr8i.mongodb.net/'
 )
-db = client['mongodatabase']
-colecao = db['bigdataclust']
 
-# Rota para obter todos os itens
+# Conecta ao banco de dados correto
+db = client['bgdatabase']
 
+# Conecta às coleções 'nome' e 'descricao'
+nome_collection = db['nome']
+descricao_collection = db['descricao']
 
-@app.route('/items', methods=['GET'])
-def get_items():
-    items = list(colecao.find())
-    for item in items:
-        item['_id'] = str(item['_id'])  # Converte ObjectId para string
-    return jsonify(items), 200
-
-# Rota para adicionar um novo item
+# Rota para adicionar um novo item nas coleções 'nome' e 'descricao'
 
 
-@app.route('/items', methods=['POST'])
-def add_item():
-    new_item = request.json
-    if not new_item or not isinstance(new_item, dict):
+@app.route('/add_data', methods=['POST'])
+def add_data():
+    data = request.json
+    if not data or not isinstance(data, dict):
         return jsonify({"error": "Dados inválidos"}), 400
 
-    result = colecao.insert_one(new_item)
-    new_item['_id'] = str(result.inserted_id)
-    return jsonify(new_item), 201
+    # Verifica se 'nome' e 'descricao' estão presentes no JSON recebido
+    if 'nome' in data:
+        nome_result = nome_collection.insert_one({'nome': data['nome']})
+        data['nome_id'] = str(nome_result.inserted_id)
 
-# Rota para atualizar um item
+    if 'descricao' in data:
+        descricao_result = descricao_collection.insert_one(
+            {'descricao': data['descricao']})
+        data['descricao_id'] = str(descricao_result.inserted_id)
 
+    return jsonify(data), 201
 
-@app.route('/items/<id>', methods=['PUT'])
-def update_item(id):
-    updated_item = request.json
-    if not updated_item or not isinstance(updated_item, dict):
-        return jsonify({"error": "Dados inválidos"}), 400
-
-    result = colecao.update_one({'_id': ObjectId(id)}, {'$set': updated_item})
-
-    if result.matched_count == 0:
-        return jsonify({"error": "Item não encontrado"}), 404
-
-    updated_item['_id'] = id  # Manter o ID no retorno
-    return jsonify(updated_item), 200
-
-# Rota para deletar um item
+# Rota para listar todos os dados das coleções 'nome' e 'descricao'
 
 
-@app.route('/items/<id>', methods=['DELETE'])
-def delete_item(id):
-    result = colecao.delete_one({'_id': ObjectId(id)})
+@app.route('/list_data', methods=['GET'])
+def list_data():
+    # Lista os dados da coleção 'nome' e 'descricao'
+    nomes = list(nome_collection.find())
+    descricoes = list(descricao_collection.find())
+
+    # Converte o ObjectId para string
+    for nome in nomes:
+        nome['_id'] = str(nome['_id'])
+    for descricao in descricoes:
+        descricao['_id'] = str(descricao['_id'])
+
+    return jsonify({"nomes": nomes, "descricoes": descricoes}), 200
+
+# Rota para remover um item da coleção 'nome' ou 'descricao'
+
+
+@app.route('/remove_data/<collection>/<id>', methods=['DELETE'])
+def remove_data(collection, id):
+    if collection == 'nome':
+        result = nome_collection.delete_one({'_id': ObjectId(id)})
+    elif collection == 'descricao':
+        result = descricao_collection.delete_one({'_id': ObjectId(id)})
+    else:
+        return jsonify({"error": "Coleção inválida"}), 400
 
     if result.deleted_count == 0:
         return jsonify({"error": "Item não encontrado"}), 404
