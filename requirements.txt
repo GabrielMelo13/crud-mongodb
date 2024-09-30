@@ -1,3 +1,4 @@
 Flask
 pymongo
 Flask-Cors
+Flask-PyMongo==2.3.0

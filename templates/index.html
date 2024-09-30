@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CRUD com Flask e MongoDB</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      h1 {
+        text-align: center;
+      }
+      .form-group {
+        margin: 10px 0;
+      }
+      .item-list {
+        margin-top: 20px;
+      }
+      .item-list ul {
+        list-style: none;
+        padding: 0;
+      }
+      .item-list li {
+        background: #f4f4f4;
+        margin: 5px 0;
+        padding: 10px;
+        border-radius: 5px;
+        display: flex;
+        justify-content: space-between;
+      }
+      button {
+        margin-left: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>CRUD com Flask e MongoDB</h1>
+
+    <div>
+      <h2>Adicionar Item</h2>
+      <div class="form-group">
+        <label for="nome">Nome:</label>
+        <input type="text" id="nome" placeholder="Digite o nome" />
+      </div>
+      <div class="form-group">
+        <label for="descricao">Descrição:</label>
+        <input type="text" id="descricao" placeholder="Digite a descrição" />
+      </div>
+      <button onclick="addItem()">Adicionar</button>
+    </div>
+
+    <div class="item-list">
+      <h2>Lista de Itens</h2>
+      <ul id="itemList"></ul>
+    </div>
+
+    <script>
+      const apiUrl = "http://localhost:5000/items";
+
+      // Função para listar os itens
+      async function getItems() {
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        const itemList = document.getElementById("itemList");
+        itemList.innerHTML = "";
+        data.forEach((item) => {
+          const li = document.createElement("li");
+          li.innerHTML = `
+                    <span><strong>${item.nome}:</strong> ${item.descricao}</span>
+                    <span>
+                        <button onclick="deleteItem('${item._id.$oid}')">Deletar</button>
+                        <button onclick="editItem('${item._id.$oid}', '${item.nome}', '${item.descricao}')">Editar</button>
+                    </span>
+                `;
+          itemList.appendChild(li);
+        });
+      }
+
+      // Função para adicionar um item
+      async function addItem() {
+        const nome = document.getElementById("nome").value;
+        const descricao = document.getElementById("descricao").value;
+        const response = await fetch(apiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ nome, descricao }),
+        });
+        if (response.ok) {
+          alert("Item adicionado com sucesso!");
+          getItems(); // Atualizar lista de itens
+        } else {
+          alert("Erro ao adicionar item");
+        }
+      }
+
+      // Função para deletar um item
+      async function deleteItem(id) {
+        const response = await fetch(`${apiUrl}/${id}`, {
+          method: "DELETE",
+        });
+        if (response.ok) {
+          alert("Item deletado com sucesso!");
+          getItems(); // Atualizar lista de itens
+        } else {
+          alert("Erro ao deletar item");
+        }
+      }
+
+      // Função para editar um item
+      async function editItem(id, currentName, currentDesc) {
+        const nome = prompt("Editar Nome:", currentName);
+        const descricao = prompt("Editar Descrição:", currentDesc);
+        if (nome && descricao) {
+          const response = await fetch(`${apiUrl}/${id}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ nome, descricao }),
+          });
+          if (response.ok) {
+            alert("Item atualizado com sucesso!");
+            getItems(); // Atualizar lista de itens
+          } else {
+            alert("Erro ao editar item");
+          }
+        }
+      }
+
+      // Carregar itens ao carregar a página
+      window.onload = getItems;
+    </script>
+  </body>
+</html>
