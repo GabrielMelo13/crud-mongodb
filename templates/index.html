@@ -38,6 +38,7 @@
   <body>
     <h1>CRUD com Flask e MongoDB</h1>
 
+    <!-- Formulário de Adicionar Item -->
     <div>
       <h2>Adicionar Item</h2>
       <div class="form-group">
@@ -51,6 +52,7 @@
       <button onclick="addItem()">Adicionar</button>
     </div>
 
+    <!-- Lista de Itens -->
     <div class="item-list">
       <h2>Lista de Itens</h2>
       <ul id="itemList"></ul>
@@ -59,62 +61,96 @@
     <script>
       const apiUrl = "http://localhost:5000/items";
 
-      // Função para listar os itens
+      // Função para listar os itens em tempo real
       async function getItems() {
-        const response = await fetch(apiUrl);
-        const data = await response.json();
-        const itemList = document.getElementById("itemList");
-        itemList.innerHTML = "";
-        data.forEach((item) => {
-          const li = document.createElement("li");
-          li.innerHTML = `
-                    <span><strong>${item.nome}:</strong> ${item.descricao}</span>
-                    <span>
-                        <button onclick="deleteItem('${item._id.$oid}')">Deletar</button>
-                        <button onclick="editItem('${item._id.$oid}', '${item.nome}', '${item.descricao}')">Editar</button>
-                    </span>
-                `;
-          itemList.appendChild(li);
-        });
+        try {
+          const response = await fetch(apiUrl);
+          if (!response.ok) {
+            throw new Error("Erro ao buscar itens");
+          }
+          const data = await response.json();
+          const itemList = document.getElementById("itemList");
+          itemList.innerHTML = ""; // Limpa a lista antes de renderizar novamente
+          data.forEach((item) => {
+            const li = document.createElement("li");
+            li.innerHTML = `
+              <span><strong>${item.nome}:</strong> ${item.descricao}</span>
+              <span>
+                <button onclick="deleteItem('${item._id.$oid}')">Deletar</button>
+                <button onclick="editItem('${item._id.$oid}', '${item.nome}', '${item.descricao}')">Editar</button>
+              </span>
+            `;
+            itemList.appendChild(li);
+          });
+        } catch (error) {
+          console.error(error);
+          alert("Não foi possível carregar a lista de itens");
+        }
       }
 
-      // Função para adicionar um item
+      // Função para adicionar um item e atualizar a lista
       async function addItem() {
         const nome = document.getElementById("nome").value;
         const descricao = document.getElementById("descricao").value;
-        const response = await fetch(apiUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ nome, descricao }),
-        });
-        if (response.ok) {
+
+        if (!nome || !descricao) {
+          alert("Por favor, preencha todos os campos!");
+          return;
+        }
+
+        try {
+          const response = await fetch(apiUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ nome, descricao }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Erro ao adicionar item");
+          }
+
           alert("Item adicionado com sucesso!");
-          getItems(); // Atualizar lista de itens
-        } else {
+          document.getElementById("nome").value = ""; // Limpa o campo nome
+          document.getElementById("descricao").value = ""; // Limpa o campo descrição
+          getItems(); // Atualiza a lista de itens em tempo real
+        } catch (error) {
+          console.error(error);
           alert("Erro ao adicionar item");
         }
       }
 
-      // Função para deletar um item
+      // Função para deletar um item e atualizar a lista
       async function deleteItem(id) {
-        const response = await fetch(`${apiUrl}/${id}`, {
-          method: "DELETE",
-        });
-        if (response.ok) {
+        try {
+          const response = await fetch(`${apiUrl}/${id}`, {
+            method: "DELETE",
+          });
+
+          if (!response.ok) {
+            throw new Error("Erro ao deletar item");
+          }
+
           alert("Item deletado com sucesso!");
-          getItems(); // Atualizar lista de itens
-        } else {
+          getItems(); // Atualiza a lista de itens em tempo real
+        } catch (error) {
+          console.error(error);
           alert("Erro ao deletar item");
         }
       }
 
-      // Função para editar um item
+      // Função para editar um item e atualizar a lista
       async function editItem(id, currentName, currentDesc) {
         const nome = prompt("Editar Nome:", currentName);
         const descricao = prompt("Editar Descrição:", currentDesc);
-        if (nome && descricao) {
+
+        if (!nome || !descricao) {
+          alert("Campos de nome e descrição não podem estar vazios.");
+          return;
+        }
+
+        try {
           const response = await fetch(`${apiUrl}/${id}`, {
             method: "PUT",
             headers: {
@@ -122,12 +158,16 @@
             },
             body: JSON.stringify({ nome, descricao }),
           });
-          if (response.ok) {
-            alert("Item atualizado com sucesso!");
-            getItems(); // Atualizar lista de itens
-          } else {
-            alert("Erro ao editar item");
+
+          if (!response.ok) {
+            throw new Error("Erro ao editar item");
           }
+
+          alert("Item atualizado com sucesso!");
+          getItems(); // Atualiza a lista de itens em tempo real
+        } catch (error) {
+          console.error(error);
+          alert("Erro ao editar item");
         }
       }
 
