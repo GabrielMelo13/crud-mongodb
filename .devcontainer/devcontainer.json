@@ -6,5 +6,8 @@
   "settings": {
     "terminal.integrated.shell.linux": "/bin/bash"
   },
-  "extensions": ["ms-python.python", "ms-azuretools.vscode-docker"]
+  "extensions": ["ms-python.python", "ms-azuretools.vscode-docker"],
+  "remoteEnv": {
+    "DB_PASSWORD": "Gabriel2407_"
+  }
 }

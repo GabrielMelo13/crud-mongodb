@@ -10,9 +10,13 @@ CORS(app)
 # Utilizando variáveis de ambiente para proteger a senha do banco de dados
 db_password = os.getenv('DB_PASSWORD')
 
-# Configuração do MongoClient com senha (use variáveis de ambiente para senhas)
+# Verifica se a variável de ambiente foi definida
+if not db_password:
+    raise RuntimeError("A variável de ambiente DB_PASSWORD não foi definida.")
+
+# Configuração do MongoClient com a senha
 client = MongoClient(
-    f'mongodb+srv://mjosegabriel13:{db_password}@bigdataclust.isr8i.mongodb.net/?retryWrites=true&w=majority&appName=bigdataclust'
+    f'mongodb+srv://mjosegabriel13:<db_password>@bigdataclust.isr8i.mongodb.net/'
 )
 db = client['mongodatabase']
 colecao = db['bigdataclust']
@@ -24,7 +28,7 @@ colecao = db['bigdataclust']
 def get_items():
     items = list(colecao.find())
     for item in items:
-        item['_id'] = str(item['_id'])  # Converter ObjectId para string
+        item['_id'] = str(item['_id'])  # Converte ObjectId para string
     return jsonify(items), 200
 
 # Rota para adicionar um novo item
@@ -77,10 +81,6 @@ def serve_frontend():
     return render_template('index.html')
 
 
+# Inicializa o servidor Flask
 if __name__ == '__main__':
-    # Certifique-se de definir a variável de ambiente DB_PASSWORD antes de rodar
-    if not db_password:
-        raise RuntimeError(
-            "A variável de ambiente DB_PASSWORD não foi definida.")
-
     app.run(host='0.0.0.0', port=5000)
